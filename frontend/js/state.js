@@ -19,7 +19,7 @@ async function loadState() {
     const actionsData = await actionsRes.json();
     const reportsData = await reportsRes.json();
 
-    state.reps = repsData.map(r => r.name);
+    state.reps = repsData;
     state.actions = actionsData;
     state.reports = reportsData;
 

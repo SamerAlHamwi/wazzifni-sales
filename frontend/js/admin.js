@@ -24,7 +24,6 @@ function formatReportDate(dateVal) {
   if (!isNaN(d.getTime())) {
     return d.toLocaleString('ar-EG');
   }
-  // If it's already an Arabic string (old format) or something we can't parse, return as is
   return dateVal;
 }
 
@@ -218,8 +217,11 @@ function hideFinanceDetail() {
 /* REPS MANAGEMENT */
 function renderRepsList() {
   const el = document.getElementById('reps-list');
-  const sel = document.getElementById('sel-del-rep');
-  if (sel) sel.innerHTML = '<option value="">— اختر —</option>' + state.reps.map(r => `<option>${r}</option>`).join('');
+  const selUpdate = document.getElementById('sel-update-rep-pass');
+
+  if (selUpdate) {
+    selUpdate.innerHTML = '<option value="">— اختر —</option>' + state.reps.map(r => `<option value="${r._id}">${r.fullName} (${r.username})</option>`).join('');
+  }
 
   if (!el) return;
   if (!state.reps.length) {
@@ -228,31 +230,44 @@ function renderRepsList() {
   }
   el.innerHTML = state.reps.map(r => `
     <div class="list-item">
-      <span class="list-item-name">👤 ${r}</span>
-      <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r}')">حذف</button>
+      <div>
+        <div class="list-item-name">👤 ${r.fullName}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">اسم المستخدم: ${r.username}</div>
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>
     </div>`).join('');
 }
 
 async function addRep() {
-  const name = document.getElementById('inp-new-rep').value.trim();
+  const fullName = document.getElementById('rep-full-name').value.trim();
+  const username = document.getElementById('rep-username').value.trim();
+  const password = document.getElementById('rep-password').value.trim();
   const msg = document.getElementById('rep-msg');
-  if (!name) { showMsg(msg, 'اكتب اسم المندوب.', 'error'); return; }
+
+  if (!fullName || !username || !password) {
+    showMsg(msg, 'يرجى ملء جميع الحقول.', 'error');
+    return;
+  }
 
   try {
     const res = await fetch(`${API_URL}/reps`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name })
+      body: JSON.stringify({ fullName, username, password })
     });
     if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to add rep');
     }
     const newRep = await res.json();
-    state.reps.push(newRep.name);
-    state.reps.sort();
-    document.getElementById('inp-new-rep').value = '';
-    showMsg(msg, 'تمت الإضافة بنجاح ✅', 'success');
+    state.reps.push(newRep);
+    state.reps.sort((a,b) => a.fullName.localeCompare(b.fullName, 'ar'));
+
+    document.getElementById('rep-full-name').value = '';
+    document.getElementById('rep-username').value = '';
+    document.getElementById('rep-password').value = '';
+
+    showMsg(msg, 'تمت إضافة المندوب بنجاح ✅', 'success');
     renderRepsList();
     renderDashboard();
   } catch (err) {
@@ -261,31 +276,45 @@ async function addRep() {
   }
 }
 
-async function deleteRep() {
-  const name = document.getElementById('sel-del-rep').value;
-  const msg = document.getElementById('rep-del-msg');
-  if (!name) { showMsg(msg, 'اختر مندوباً أولاً.', 'error'); return; }
-  await performDeleteRep(name, msg);
+async function updateRepPassword() {
+  const id = document.getElementById('sel-update-rep-pass').value;
+  const password = document.getElementById('inp-update-rep-pass').value.trim();
+  const msg = document.getElementById('rep-update-msg');
+
+  if (!id || !password) {
+    showMsg(msg, 'اختر مندوباً واكتب كلمة المرور الجديدة.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/reps/${id}/password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    });
+    if (!res.ok) throw new Error('Failed to update password');
+
+    document.getElementById('inp-update-rep-pass').value = '';
+    showMsg(msg, 'تم تحديث كلمة المرور بنجاح ✅', 'success');
+  } catch (err) {
+    console.error('Error updating password:', err);
+    showMsg(msg, 'حدث خطأ أثناء التحديث', 'error');
+  }
 }
 
-async function quickDeleteRep(name) {
-  if (!confirm(`حذف المندوب "${name}"؟`)) return;
-  await performDeleteRep(name);
-}
+async function quickDeleteRep(id, name) {
+  if (!confirm(`هل أنت متأكد من حذف المندوب "${name}"؟`)) return;
+  try {
+    const res = await fetch(`${API_URL}/reps/${id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete rep');
 
-async function performDeleteRep(name, msgEl) {
-    try {
-        const res = await fetch(`${API_URL}/reps/${encodeURIComponent(name)}`, { method: 'DELETE' });
-        if (!res.ok) throw new Error('Failed to delete rep');
-
-        state.reps = state.reps.filter(r => r !== name);
-        if (msgEl) showMsg(msgEl, 'تم الحذف ✅', 'success');
-        renderRepsList();
-        renderDashboard();
-    } catch (err) {
-        console.error('Error deleting rep:', err);
-        if (msgEl) showMsg(msgEl, 'حدث خطأ أثناء الحذف', 'error');
-    }
+    state.reps = state.reps.filter(r => r._id !== id);
+    renderRepsList();
+    renderDashboard();
+  } catch (err) {
+    console.error('Error deleting rep:', err);
+    alert('حدث خطأ أثناء الحذف');
+  }
 }
 
 /* ACTIONS MANAGEMENT */
@@ -447,7 +476,7 @@ function exportFinanceDetailToExcel() {
 
 function exportRepsToExcel() {
   if (!state.reps.length) return alert('لا توجد بيانات لتصديرها');
-  const data = state.reps.map(r => ({ 'اسم المندوب': r }));
+  const data = state.reps.map(r => ({ 'الاسم الكامل': r.fullName, 'اسم المستخدم': r.username }));
   downloadExcel(data, 'قائمة_المندوبين');
 }
 

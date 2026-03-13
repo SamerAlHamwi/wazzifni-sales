@@ -21,6 +21,46 @@ function updateClock() {
   if (dayDisplay) dayDisplay.textContent = days[now.getDay()];
 }
 
+/* LOGIN */
+async function checkRepLogin() {
+    const username = document.getElementById('rep-login-user').value.trim();
+    const password = document.getElementById('rep-login-pass').value.trim();
+    const err = document.getElementById('rep-login-err');
+
+    if (!username || !password) {
+        err.textContent = '❌ يرجى إدخال اسم المستخدم وكلمة المرور';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/reps/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'خطأ في الدخول');
+        }
+
+        const repData = await res.json();
+        sessionStorage.setItem('repData', JSON.stringify(repData));
+
+        document.getElementById('rep-login-overlay').style.display = 'none';
+        document.getElementById('rep-main-content').style.display = 'block';
+        renderRepForm();
+    } catch (err) {
+        console.error('Login error:', err);
+        document.getElementById('rep-login-err').textContent = '❌ ' + err.message;
+    }
+}
+
+function repLogout() {
+    sessionStorage.removeItem('repData');
+    window.location.reload();
+}
+
 /* GPS */
 function getGPS() {
   const btn = document.getElementById('btn-gps');
@@ -32,18 +72,13 @@ function getGPS() {
     return;
   }
 
-  // Check if secure context (HTTPS) - Geolocation often fails on mobile without it
-  if (!window.isSecureContext && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-    status.innerHTML = '⚠️ تحديد الموقع يتطلب HTTPS على الموبايل. <br/><small style="font-size:10px;">تأكد من استخدام رابط يبدأ بـ https</small>';
-  }
-
   btn.disabled = true;
   btn.textContent = '⏳';
   status.textContent = 'جاري تحديد موقعك (يرجى التأكد من تفعيل GPS)...';
 
   const options = {
     enableHighAccuracy: true,
-    timeout: 20000, // Increased timeout for mobile
+    timeout: 20000,
     maximumAge: 0
   };
 
@@ -58,10 +93,7 @@ function getGPS() {
 
   function error(err) {
     console.error('GPS Error:', err);
-
-    // If high accuracy failed, try again with low accuracy
     if (options.enableHighAccuracy) {
-      console.log('Retrying with highAccuracy: false');
       options.enableHighAccuracy = false;
       navigator.geolocation.getCurrentPosition(success, finalError, options);
       return;
@@ -71,10 +103,9 @@ function getGPS() {
 
   function finalError(err) {
     let errorMsg = '❌ تعذّر تحديد الموقع.';
-    if (err.code === 1) errorMsg = '❌ تم رفض طلب الوصول للموقع. يرجى تفعيل الصلاحية من إعدادات المتصفح.';
-    else if (err.code === 2) errorMsg = '❌ الموقع غير متاح. تأكد من تفعيل GPS في الهاتف.';
-    else if (err.code === 3) errorMsg = '❌ انتهى الوقت. حاول مرة أخرى في مكان مفتوح.';
-
+    if (err.code === 1) errorMsg = '❌ تم رفض طلب الوصول للموقع.';
+    else if (err.code === 2) errorMsg = '❌ الموقع غير متاح.';
+    else if (err.code === 3) errorMsg = '❌ انتهى الوقت.';
     status.textContent = errorMsg;
     btn.textContent = '📡';
     btn.disabled = false;
@@ -85,10 +116,6 @@ function getGPS() {
 
 /* FORM RENDERING & LOGIC */
 function renderRepForm() {
-  const sel = document.getElementById('rep-sel-name');
-  if (!sel) return;
-  sel.innerHTML = '<option value="">— اختر اسمك —</option>' + state.reps.map(r => `<option>${r}</option>`).join('');
-
   const list = document.getElementById('rep-actions-list');
   if (!list) return;
   if (!state.actions.length) {
@@ -116,7 +143,10 @@ function updatePoints() {
 }
 
 async function submitRepReport() {
-  const rep = document.getElementById('rep-sel-name').value;
+  const repJSON = sessionStorage.getItem('repData');
+  if (!repJSON) { alert('انتهت الجلسة، يرجى تسجيل الدخول مرة أخرى.'); return repLogout(); }
+
+  const currentRep = JSON.parse(repJSON);
   const company = document.getElementById('rep-company').value.trim();
   const phone = document.getElementById('rep-phone').value.trim();
   const email = document.getElementById('rep-email').value.trim();
@@ -125,7 +155,6 @@ async function submitRepReport() {
   const notes = document.getElementById('rep-notes').value.trim();
   const msg = document.getElementById('rep-submit-msg');
 
-  if (!rep) { showMsg(msg, 'اختر اسمك أولاً.', 'error'); return; }
   if (!company) { showMsg(msg, 'اكتب اسم الشركة.', 'error'); return; }
 
   const checks = document.querySelectorAll('#rep-actions-list input[type=checkbox]:checked');
@@ -134,7 +163,8 @@ async function submitRepReport() {
   checks.forEach(c => total_points += parseInt(c.dataset.pts) || 0);
 
   const reportData = {
-    rep_name: rep,
+    rep_name: currentRep.fullName,
+    rep_id: currentRep._id,
     company_name: company,
     company_phone: phone,
     company_email: email,
@@ -158,26 +188,17 @@ async function submitRepReport() {
     state.reports.push(newReport);
 
     // Reset form
-    ['rep-sel-name', 'rep-company', 'rep-phone', 'rep-email', 'rep-address', 'rep-notes'].forEach(id => {
+    ['rep-company', 'rep-phone', 'rep-email', 'rep-address', 'rep-notes'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
-    const gpsInp = document.getElementById('rep-gps');
-    if (gpsInp) gpsInp.value = '';
-    const gpsStatus = document.getElementById('gps-status');
-    if (gpsStatus) gpsStatus.textContent = '';
-    const gpsBtn = document.getElementById('btn-gps');
-    if (gpsBtn) {
-        gpsBtn.textContent = '📡';
-        gpsBtn.disabled = false;
-    }
+    document.getElementById('rep-gps').value = '';
+    document.getElementById('gps-status').textContent = '';
+    document.getElementById('btn-gps').textContent = '📡';
     document.querySelectorAll('#rep-actions-list input[type=checkbox]').forEach(c => c.checked = false);
     updatePoints();
 
-    const submitMsg = document.getElementById('rep-submit-msg');
-    if (submitMsg) submitMsg.innerHTML = '';
-    const overlay = document.getElementById('success-overlay');
-    if (overlay) overlay.classList.add('show');
+    document.getElementById('success-overlay').classList.add('show');
   } catch (err) {
     console.error('Error submitting report:', err);
     showMsg(msg, 'حدث خطأ أثناء إرسال التقرير.', 'error');
@@ -185,11 +206,13 @@ async function submitRepReport() {
 }
 
 function closeSuccess() {
-  const overlay = document.getElementById('success-overlay');
-  if (overlay) overlay.classList.remove('show');
+  document.getElementById('success-overlay').classList.remove('show');
 }
 
-// Initialize if on rep page
+// Initialize
 if (document.getElementById('page-rep')) {
     startClock();
+    if (sessionStorage.getItem('repData')) {
+        renderRepForm();
+    }
 }
