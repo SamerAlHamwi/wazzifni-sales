@@ -1,5 +1,5 @@
 {
-  "name": "wazifni-app",
+  "name": "wazifni-sales",
   "version": "1.0.0",
   "description": "Full stack Wazifni app",
   "main": "backend/server.js",
