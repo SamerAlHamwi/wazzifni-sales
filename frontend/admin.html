@@ -98,7 +98,10 @@
             <div id="content-companies" class="admin-content">
                 <div class="card">
                     <div class="card-head">
-                        <h2>🏢 بيانات الشركات المزارة</h2>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <h2>🏢 بيانات الشركات المزارة</h2>
+                            <button class="btn btn-warning btn-sm" onclick="exportCompaniesToExcel()">📥 إكسل</button>
+                        </div>
                         <span id="companies-count" style="font-size:12px;color:var(--text-muted);"></span>
                     </div>
                     <div id="companies-grid" class="companies-grid">
@@ -114,7 +117,10 @@
             <div id="content-reports" class="admin-content" style="display:none;">
                 <div class="card">
                     <div class="card-head">
-                        <h2>📋 آخر التقارير</h2>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <h2>📋 آخر التقارير</h2>
+                            <button class="btn btn-warning btn-sm" onclick="exportReportsToExcel()">📥 إكسل</button>
+                        </div>
                         <button class="btn btn-danger btn-sm" onclick="clearReports()">🗑️ مسح الكل</button>
                     </div>
                     <div id="reports-table-wrap">
@@ -130,7 +136,10 @@
             <div id="content-finance" class="admin-content" style="display:none;">
                 <div class="card">
                     <div class="card-head">
-                        <h2>💰 التقارير المالية حسب المندوب</h2>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <h2>💰 التقارير المالية حسب المندوب</h2>
+                            <button class="btn btn-warning btn-sm" onclick="exportFinanceToExcel()">📥 إكسل</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div id="finance-grid" class="rep-fin-grid"></div>
@@ -139,7 +148,10 @@
                 <div id="finance-detail" style="display:none;">
                     <div class="card">
                         <div class="card-head">
-                            <h2 id="fin-detail-title">تفاصيل المندوب</h2>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <h2 id="fin-detail-title">تفاصيل المندوب</h2>
+                                <button class="btn btn-warning btn-sm" onclick="exportFinanceDetailToExcel()">📥 إكسل</button>
+                            </div>
                             <button class="btn btn-sm" style="background:var(--surface2);color:var(--text);"
                                     onclick="hideFinanceDetail()">✕ إغلاق</button>
                         </div>
@@ -178,7 +190,10 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <h2>👥 قائمة المندوبين الحالية</h2>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <h2>👥 قائمة المندوبين الحالية</h2>
+                            <button class="btn btn-warning btn-sm" onclick="exportRepsToExcel()">📥 إكسل</button>
+                        </div>
                     </div>
                     <div class="card-body" id="reps-list">
                         <div class="empty-state">
@@ -221,7 +236,10 @@
                 </div>
                 <div class="card">
                     <div class="card-head">
-                        <h2>⚙️ قائمة الإجراءات الحالية</h2>
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <h2>⚙️ قائمة الإجراءات الحالية</h2>
+                            <button class="btn btn-warning btn-sm" onclick="exportActionsToExcel()">📥 إكسل</button>
+                        </div>
                     </div>
                     <div id="actions-list-table">
                         <div class="empty-state">
@@ -244,6 +262,9 @@
         <button class="btn btn-primary" onclick="closeSuccess()" style="width:100%;">حسناً</button>
     </div>
 </div>
+
+<!-- Excel Library -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script src="js/state.js"></script>
 <script src="js/app.js"></script>

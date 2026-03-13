@@ -150,7 +150,10 @@ function renderFinance() {
     </div>`).join('');
 }
 
+let currentDetailRep = '';
+
 function showFinanceDetail(repName) {
+  currentDetailRep = repName;
   const rr = [...state.reports].filter(r => r.rep_name === repName).reverse();
   const detailTitle = document.getElementById('fin-detail-title');
   if (detailTitle) detailTitle.textContent = `📊 تفاصيل: ${repName}`;
@@ -195,7 +198,10 @@ function showFinanceDetail(repName) {
 
 function hideFinanceDetail() {
   const detailEl = document.getElementById('finance-detail');
-  if (detailEl) detailEl.style.display = 'none';
+  if (detailEl) {
+    detailEl.style.display = 'none';
+    currentDetailRep = '';
+  }
 }
 
 /* REPS MANAGEMENT */
@@ -258,13 +264,6 @@ async function quickDeleteRep(name) {
 
 async function performDeleteRep(name, msgEl) {
     try {
-        // We need to find the ID if the API requires ID, but looking at standard REST, it might be by name or ID.
-        // Assuming we might need to fetch all and find the one with this name if the API only takes ID.
-        // Or the API might support DELETE /reps/:name.
-        // Let's check backend/routes/reps.js if possible or assume DELETE /api/reps/:name if it was designed that way.
-        // For now, I'll try to find the rep object if I had IDs.
-
-        // Actually, let's look at the backend routes.
         const res = await fetch(`${API_URL}/reps/${encodeURIComponent(name)}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Failed to delete rep');
 
@@ -355,4 +354,98 @@ async function performDeleteAction(idOrName, msgEl) {
         console.error('Error deleting action:', err);
         if (msgEl) showMsg(msgEl, 'حدث خطأ أثناء الحذف', 'error');
     }
+}
+
+/* EXPORT TO EXCEL */
+function downloadExcel(data, fileName) {
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
+  XLSX.writeFile(workbook, `${fileName}.xlsx`);
+}
+
+function exportReportsToExcel() {
+  if (!state.reports.length) return alert('لا توجد بيانات لتصديرها');
+  const data = state.reports.map(r => ({
+    'اسم المندوب': r.rep_name,
+    'اسم الشركة': r.company_name,
+    'رقم الهاتف': r.company_phone || '',
+    'البريد الإلكتروني': r.company_email || '',
+    'العنوان': r.company_address || '',
+    'الموقع (GPS)': r.company_gps || '',
+    'الإجراءات': Array.isArray(r.actions) ? r.actions.join('، ') : (r.actions || ''),
+    'النقاط': r.total_points,
+    'المبلغ (د.ع)': r.total_points * POINT_VALUE,
+    'ملاحظات': r.notes || '',
+    'التاريخ': r.created_at || r.date || ''
+  }));
+  downloadExcel(data, 'تقارير_المندوبين');
+}
+
+function exportCompaniesToExcel() {
+  if (!state.reports.length) return alert('لا توجد بيانات لتصديرها');
+  const seen = new Set();
+  const data = [];
+  state.reports.forEach(r => {
+    const key = `${r.company_name}-${r.company_phone}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      data.push({
+        'اسم الشركة': r.company_name,
+        'رقم الهاتف': r.company_phone || '',
+        'البريد الإلكتروني': r.company_email || '',
+        'العنوان': r.company_address || '',
+        'الموقع (GPS)': r.company_gps || ''
+      });
+    }
+  });
+  downloadExcel(data, 'بيانات_الشركات');
+}
+
+function exportFinanceToExcel() {
+  if (!state.reports.length) return alert('لا توجد بيانات لتصديرها');
+  const totals = {};
+  state.reports.forEach(r => {
+    const rep = r.rep_name || 'غير معروف';
+    if (!totals[rep]) totals[rep] = { points: 0, count: 0 };
+    totals[rep].points += (parseInt(r.total_points) || 0);
+    totals[rep].count++;
+  });
+  const data = Object.entries(totals).map(([rep, d]) => ({
+    'اسم المندوب': rep,
+    'عدد التقارير': d.count,
+    'إجمالي النقاط': d.points,
+    'المبلغ الإجمالي (د.ع)': d.points * POINT_VALUE
+  }));
+  downloadExcel(data, 'التقارير_المالية');
+}
+
+function exportFinanceDetailToExcel() {
+  if (!currentDetailRep) return;
+  const rr = [...state.reports].filter(r => r.rep_name === currentDetailRep).reverse();
+  if (!rr.length) return alert('لا توجد بيانات');
+  const data = rr.map(r => ({
+    'الشركة': r.company_name,
+    'النقاط': r.total_points,
+    'المبلغ (د.ع)': r.total_points * POINT_VALUE,
+    'الإجراءات': Array.isArray(r.actions) ? r.actions.join('، ') : (r.actions || ''),
+    'التاريخ': r.created_at || r.date || ''
+  }));
+  downloadExcel(data, `تفاصيل_مالية_${currentDetailRep}`);
+}
+
+function exportRepsToExcel() {
+  if (!state.reps.length) return alert('لا توجد بيانات لتصديرها');
+  const data = state.reps.map(r => ({ 'اسم المندوب': r }));
+  downloadExcel(data, 'قائمة_المندوبين');
+}
+
+function exportActionsToExcel() {
+  if (!state.actions.length) return alert('لا توجد بيانات لتصديرها');
+  const data = state.actions.map(a => ({
+    'اسم الإجراء': a.name,
+    'النقاط': a.points,
+    'القيمة (د.ع)': a.points * POINT_VALUE
+  }));
+  downloadExcel(data, 'قائمة_الإجراءات');
 }

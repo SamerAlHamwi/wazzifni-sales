@@ -11,7 +11,8 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  direction: rtl
+  direction: rtl;
+  -webkit-tap-highlight-color: transparent
 }
 
 /* TOPBAR */
@@ -245,7 +246,8 @@ body {
   transition: all 0.2s;
   display: flex;
   align-items: center;
-  gap: 8px
+  gap: 8px;
+  white-space: nowrap
 }
 
 .tab:hover {
@@ -418,7 +420,8 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  background: var(--surface)
+  background: var(--surface);
+  min-width: 600px
 }
 
 .wz-table th {
@@ -430,7 +433,8 @@ body {
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.3px
+  letter-spacing: 0.3px;
+  white-space: nowrap
 }
 
 .wz-table td {
@@ -454,7 +458,8 @@ body {
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 12px;
-  font-weight: 600
+  font-weight: 600;
+  white-space: nowrap
 }
 
 .badge-blue {
@@ -542,10 +547,11 @@ body {
   border: 1.5px solid var(--border);
   background: var(--surface);
   font-family: inherit;
-  font-size: 14px;
+  font-size: 16px; /* Better for mobile to prevent zoom */
   color: var(--text);
   transition: all 0.2s;
-  outline: none
+  outline: none;
+  appearance: none
 }
 
 .form-input:focus,
@@ -601,6 +607,11 @@ body {
 .btn-gps:hover {
   background: var(--border);
   border-color: var(--text-muted)
+}
+
+.btn-gps:disabled {
+  opacity: 0.6;
+  cursor: not-allowed
 }
 
 .section-divider {
@@ -848,7 +859,7 @@ body {
 
 /* CHECKLIST */
 .actions-check-list {
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm)
@@ -858,7 +869,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 11px 14px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--border);
   cursor: pointer;
   transition: background 0.15s;
@@ -874,15 +885,15 @@ body {
 }
 
 .action-check-item input[type=checkbox] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--primary);
   cursor: pointer;
   flex-shrink: 0
 }
 
 .action-check-item label {
-  font-size: 14px;
+  font-size: 15px;
   cursor: pointer;
   flex: 1
 }
@@ -956,7 +967,7 @@ body {
 .success-box {
   background: var(--surface);
   border-radius: 20px;
-  padding: 40px 48px;
+  padding: 40px 32px;
   text-align: center;
   box-shadow: 0 20px 80px rgba(0, 0, 0, 0.2);
   max-width: 360px;
@@ -1033,50 +1044,132 @@ body {
   background: var(--primary-light)
 }
 
+/* RESPONSIVE DESIGN */
 @media(max-width:768px) {
-  .stats-row {
-    grid-template-columns: 1fr 1fr
-  }
-
-  .two-col {
-    grid-template-columns: 1fr
-  }
-
-  .dashboard {
-    padding: 14px
-  }
-
   .topbar {
-    padding: 0 12px
+    padding: 0 16px;
+    height: 60px
+  }
+
+  .topbar-logo {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px
   }
 
   .topbar-title {
-    font-size: 15px
+    font-size: 16px
+  }
+
+  .topbar-sub {
+    font-size: 10px
+  }
+
+  .dashboard {
+    padding: 16px
+  }
+
+  .page-header h1 {
+    font-size: 20px
+  }
+
+  .stats-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px
+  }
+
+  .stat-card {
+    padding: 14px;
+    gap: 10px
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px
+  }
+
+  .stat-val {
+    font-size: 17px
   }
 
   .tab-bar {
     width: 100%;
-    overflow-x: auto
+    overflow-x: auto;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    -webkit-overflow-scrolling: touch
   }
 
   .tab {
     flex: 1;
     justify-content: center;
-    padding: 9px 10px;
+    padding: 10px 14px;
     font-size: 13px
   }
 
-  .rep-form-body {
-    padding: 20px 18px 28px
+  .two-col {
+    grid-template-columns: 1fr;
+    gap: 16px
   }
 
   .companies-grid {
-    grid-template-columns: 1fr
+    grid-template-columns: 1fr;
+    padding: 16px
+  }
+
+  .rep-form-body {
+    padding: 20px 16px 24px
+  }
+
+  .rep-form-header {
+    padding: 24px 20px 36px
+  }
+
+  .rep-page {
+    padding: 16px 12px 32px
   }
 }
 
 @media(max-width:480px) {
   .stats-row {
     grid-template-columns: 1fr
+  }
+
+  .topbar-brand {
+    gap: 8px
+  }
+
+  .topbar-sub {
+    display: none
+  }
+
+  .card-head {
+    padding: 14px 16px
+  }
+
+  .card-body {
+    padding: 16px
+  }
+
+  .points-preview {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px
+  }
+
+  .points-preview div {
+    text-align: center !important
+  }
+
+  .rep-fin-grid {
+    grid-template-columns: 1fr
+  }
+}
+
+/* UTILS */
+.hide-on-mobile {
+  @media(max-width: 600px) {
+    display: none !important
   }
 }

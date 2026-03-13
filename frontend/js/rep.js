@@ -26,19 +26,43 @@ function getGPS() {
   const btn = document.getElementById('btn-gps');
   const inp = document.getElementById('rep-gps');
   const status = document.getElementById('gps-status');
-  if (!navigator.geolocation) { status.textContent = '⚠️ المتصفح لا يدعم تحديد الموقع.'; return; }
+
+  if (!navigator.geolocation) {
+    status.textContent = '⚠️ المتصفح لا يدعم تحديد الموقع.';
+    return;
+  }
+
+  btn.disabled = true;
   btn.textContent = '⏳';
-  status.textContent = 'جاري تحديد موقعك...';
+  status.textContent = 'جاري تحديد موقعك (يرجى التأكد من تفعيل GPS)...';
+
+  const options = {
+    enableHighAccuracy: true,
+    timeout: 15000,
+    maximumAge: 0
+  };
+
   navigator.geolocation.getCurrentPosition(
     pos => {
-      const lat = pos.coords.latitude.toFixed(6);
-      const lng = pos.coords.longitude.toFixed(6);
+      const lat = pos.coords.latitude.toFixed(7);
+      const lng = pos.coords.longitude.toFixed(7);
       inp.value = `${lat}, ${lng}`;
-      status.innerHTML = `✅ تم &nbsp;<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--primary);font-size:11px;font-weight:600;">📍 عرض الخريطة</a>`;
+      status.innerHTML = `✅ تم التحديد &nbsp;<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--primary);font-size:11px;font-weight:600;">📍 عرض في الخريطة</a>`;
       btn.textContent = '✅';
+      btn.disabled = false;
     },
-    () => { status.textContent = '❌ تعذّر تحديد الموقع.'; btn.textContent = '📡'; },
-    { enableHighAccuracy: true, timeout: 10000 }
+    err => {
+      console.error('GPS Error:', err);
+      let errorMsg = '❌ تعذّر تحديد الموقع.';
+      if (err.code === 1) errorMsg = '❌ تم رفض طلب الوصول للموقع.';
+      else if (err.code === 2) errorMsg = '❌ الموقع غير متاح.';
+      else if (err.code === 3) errorMsg = '❌ انتهى الوقت. حاول مرة أخرى.';
+
+      status.textContent = errorMsg;
+      btn.textContent = '📡';
+      btn.disabled = false;
+    },
+    options
   );
 }
 
@@ -126,7 +150,10 @@ async function submitRepReport() {
     const gpsStatus = document.getElementById('gps-status');
     if (gpsStatus) gpsStatus.textContent = '';
     const gpsBtn = document.getElementById('btn-gps');
-    if (gpsBtn) gpsBtn.textContent = '📡';
+    if (gpsBtn) {
+        gpsBtn.textContent = '📡';
+        gpsBtn.disabled = false;
+    }
     document.querySelectorAll('#rep-actions-list input[type=checkbox]').forEach(c => c.checked = false);
     updatePoints();
 
