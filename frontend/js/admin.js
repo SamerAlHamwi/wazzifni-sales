@@ -17,6 +17,17 @@ function renderDashboard() {
   renderCompanies();
 }
 
+/* UTILS */
+function formatReportDate(dateVal) {
+  if (!dateVal) return '';
+  const d = new Date(dateVal);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleString('ar-EG');
+  }
+  // If it's already an Arabic string (old format) or something we can't parse, return as is
+  return dateVal;
+}
+
 /* COMPANIES LIST */
 function renderCompanies() {
   const grid = document.getElementById('companies-grid');
@@ -53,7 +64,7 @@ function renderCompanies() {
       ? acts.map(a => `<span class="badge badge-blue" style="margin:2px 2px 0 0;font-size:11px;">${a}</span>`).join('')
       : '<span style="color:var(--text-muted);font-size:12px;">—</span>';
 
-    const dateStr = r.created_at ? new Date(r.created_at).toLocaleString('ar-EG') : (r.date || '');
+    const dateStr = r.created_at ? formatReportDate(r.created_at) : (r.date || '');
 
     return `<div class="company-card">
       <div class="company-card-stripe"></div>
@@ -95,7 +106,7 @@ function renderReportsTable() {
     if (r.company_address) info.push(`📍 ${r.company_address}`);
     if (r.company_gps) info.push(`<a class="map-link" href="https://maps.google.com/?q=${r.company_gps.trim()}" target="_blank">🗺️ خريطة</a>`);
     const infoHtml = info.length ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.8;">${info.join(' &nbsp;|&nbsp; ')}</div>` : '';
-    const dateStr = r.created_at ? new Date(r.created_at).toLocaleString('ar-EG') : (r.date || '');
+    const dateStr = r.created_at ? formatReportDate(r.created_at) : (r.date || '');
     return `<tr>
       <td><strong>${r.rep_name || ''}</strong></td>
       <td><div style="font-weight:600;">${r.company_name || ''}</div>${infoHtml}</td>
@@ -166,7 +177,7 @@ function showFinanceDetail(repName) {
     if (r.company_address) info.push(`📍 ${r.company_address}`);
     if (r.company_gps) info.push(`<a class="map-link" href="https://maps.google.com/?q=${r.company_gps.trim()}" target="_blank">🗺️ خريطة</a>`);
     const infoHtml = info.length ? `<div style="font-size:11px;color:var(--text-muted);margin-top:3px;line-height:1.8;">${info.join(' | ')}</div>` : '';
-    const dateStr = r.created_at ? new Date(r.created_at).toLocaleString('ar-EG') : (r.date || '');
+    const dateStr = r.created_at ? formatReportDate(r.created_at) : (r.date || '');
     return `<tr>
       <td><div style="font-weight:600;">${r.company_name || ''}</div>${infoHtml}</td>
       <td><span class="badge badge-blue">${pts} نقطة</span></td>

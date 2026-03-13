@@ -32,38 +32,55 @@ function getGPS() {
     return;
   }
 
+  // Check if secure context (HTTPS) - Geolocation often fails on mobile without it
+  if (!window.isSecureContext && window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    status.innerHTML = '⚠️ تحديد الموقع يتطلب HTTPS على الموبايل. <br/><small style="font-size:10px;">تأكد من استخدام رابط يبدأ بـ https</small>';
+  }
+
   btn.disabled = true;
   btn.textContent = '⏳';
   status.textContent = 'جاري تحديد موقعك (يرجى التأكد من تفعيل GPS)...';
 
   const options = {
     enableHighAccuracy: true,
-    timeout: 15000,
+    timeout: 20000, // Increased timeout for mobile
     maximumAge: 0
   };
 
-  navigator.geolocation.getCurrentPosition(
-    pos => {
-      const lat = pos.coords.latitude.toFixed(7);
-      const lng = pos.coords.longitude.toFixed(7);
-      inp.value = `${lat}, ${lng}`;
-      status.innerHTML = `✅ تم التحديد &nbsp;<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--primary);font-size:11px;font-weight:600;">📍 عرض في الخريطة</a>`;
-      btn.textContent = '✅';
-      btn.disabled = false;
-    },
-    err => {
-      console.error('GPS Error:', err);
-      let errorMsg = '❌ تعذّر تحديد الموقع.';
-      if (err.code === 1) errorMsg = '❌ تم رفض طلب الوصول للموقع.';
-      else if (err.code === 2) errorMsg = '❌ الموقع غير متاح.';
-      else if (err.code === 3) errorMsg = '❌ انتهى الوقت. حاول مرة أخرى.';
+  function success(pos) {
+    const lat = pos.coords.latitude.toFixed(7);
+    const lng = pos.coords.longitude.toFixed(7);
+    inp.value = `${lat}, ${lng}`;
+    status.innerHTML = `✅ تم التحديد &nbsp;<a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" style="color:var(--primary);font-size:11px;font-weight:600;">📍 عرض في الخريطة</a>`;
+    btn.textContent = '✅';
+    btn.disabled = false;
+  }
 
-      status.textContent = errorMsg;
-      btn.textContent = '📡';
-      btn.disabled = false;
-    },
-    options
-  );
+  function error(err) {
+    console.error('GPS Error:', err);
+
+    // If high accuracy failed, try again with low accuracy
+    if (options.enableHighAccuracy) {
+      console.log('Retrying with highAccuracy: false');
+      options.enableHighAccuracy = false;
+      navigator.geolocation.getCurrentPosition(success, finalError, options);
+      return;
+    }
+    finalError(err);
+  }
+
+  function finalError(err) {
+    let errorMsg = '❌ تعذّر تحديد الموقع.';
+    if (err.code === 1) errorMsg = '❌ تم رفض طلب الوصول للموقع. يرجى تفعيل الصلاحية من إعدادات المتصفح.';
+    else if (err.code === 2) errorMsg = '❌ الموقع غير متاح. تأكد من تفعيل GPS في الهاتف.';
+    else if (err.code === 3) errorMsg = '❌ انتهى الوقت. حاول مرة أخرى في مكان مفتوح.';
+
+    status.textContent = errorMsg;
+    btn.textContent = '📡';
+    btn.disabled = false;
+  }
+
+  navigator.geolocation.getCurrentPosition(success, error, options);
 }
 
 /* FORM RENDERING & LOGIC */

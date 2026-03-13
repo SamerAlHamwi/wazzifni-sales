@@ -22,8 +22,8 @@ const reportSchema = new mongoose.Schema({
   notes: String,
   date: String,
   created_at: {
-    type: String,
-    default: () => new Date().toLocaleString('ar-EG')
+    type: Date,
+    default: Date.now
   }
 });
 
