@@ -49,6 +49,10 @@
                 <div class="topbar-sub">نظام إدارة المندوبين</div>
             </div>
         </div>
+        <div style="display:flex; align-items:center; gap:15px;">
+            <div id="current-admin-name" style="font-size:14px; font-weight:600; color:var(--text);"></div>
+            <button class="btn btn-danger btn-sm" onclick="logoutAdmin()">تسجيل الخروج 🚪</button>
+        </div>
     </nav>
 
     <!-- ADMIN PAGE -->
@@ -340,6 +344,10 @@
         if (sessionStorage.getItem('isAdminLoggedIn') === 'true' && storedAdmin) {
             state.currentAdmin = JSON.parse(storedAdmin);
             await loadState(); // Ensure state is loaded with currentAdmin context
+
+            const nameEl = document.getElementById('current-admin-name');
+            if (nameEl) nameEl.textContent = `👤 ${state.currentAdmin.fullName}`;
+
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-main-content').style.display = 'block';
 
@@ -374,6 +382,9 @@
 
             await loadState(); // Load full state after login
 
+            const nameEl = document.getElementById('current-admin-name');
+            if (nameEl) nameEl.textContent = `👤 ${state.currentAdmin.fullName}`;
+
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-main-content').style.display = 'block';
 
@@ -386,6 +397,15 @@
             err.textContent = `❌ ${e.message}`;
             setTimeout(() => { err.textContent = ''; }, 3000);
         }
+    }
+
+    function logoutAdmin() {
+        if (!confirm('هل أنت متأكد من تسجيل الخروج؟')) return;
+        sessionStorage.removeItem('isAdminLoggedIn');
+        sessionStorage.removeItem('adminUser');
+        state.currentAdmin = null;
+        state.admins = [];
+        location.reload(); // Simplest way to reset everything
     }
 
     // Allow Enter key to submit
