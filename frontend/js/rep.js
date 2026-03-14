@@ -49,10 +49,22 @@ async function checkRepLogin() {
 
         document.getElementById('rep-login-overlay').style.display = 'none';
         document.getElementById('rep-main-content').style.display = 'block';
+        updateRepUI();
         renderRepForm();
     } catch (err) {
         console.error('Login error:', err);
         document.getElementById('rep-login-err').textContent = '❌ ' + err.message;
+    }
+}
+
+function updateRepUI() {
+    const repJSON = sessionStorage.getItem('repData');
+    if (repJSON) {
+        const currentRep = JSON.parse(repJSON);
+        const subEl = document.querySelector('.topbar-sub');
+        if (subEl) {
+            subEl.innerHTML = `المندوب: <span style="color:var(--primary); font-weight:700;">${currentRep.fullName}</span>`;
+        }
     }
 }
 
@@ -213,6 +225,7 @@ function closeSuccess() {
 if (document.getElementById('page-rep')) {
     startClock();
     if (sessionStorage.getItem('repData')) {
+        updateRepUI();
         renderRepForm();
     }
 }

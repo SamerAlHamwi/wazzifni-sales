@@ -233,6 +233,7 @@ function renderRepsList() {
       <div>
         <div class="list-item-name">👤 ${r.fullName}</div>
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">اسم المستخدم: ${r.username}</div>
+        <div style="font-size:11px;color:var(--primary);margin-top:2px;font-weight:600;">كلمة المرور: ${r.password}</div>
       </div>
       <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>
     </div>`).join('');
@@ -295,7 +296,12 @@ async function updateRepPassword() {
     if (!res.ok) throw new Error('Failed to update password');
 
     document.getElementById('inp-update-rep-pass').value = '';
+    // Update local state password
+    const rep = state.reps.find(r => r._id === id);
+    if (rep) rep.password = password;
+
     showMsg(msg, 'تم تحديث كلمة المرور بنجاح ✅', 'success');
+    renderRepsList();
   } catch (err) {
     console.error('Error updating password:', err);
     showMsg(msg, 'حدث خطأ أثناء التحديث', 'error');
