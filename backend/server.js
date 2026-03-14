@@ -8,6 +8,7 @@ require('dotenv').config();
 const repRoutes = require('./routes/reps');
 const actionRoutes = require('./routes/actions');
 const reportRoutes = require('./routes/reports');
+const adminRoutes = require('./routes/admins');
 
 const app = express();
 
@@ -28,6 +29,7 @@ mongoose.connect(MONGODB_URI)
 app.use('/api/reps', repRoutes);
 app.use('/api/actions', actionRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admins', adminRoutes);
 
 // Serve static files from frontend
 const frontendPath = path.join(__dirname, '../frontend');

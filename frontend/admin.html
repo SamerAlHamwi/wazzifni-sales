@@ -96,6 +96,7 @@
                 <button class="tab" onclick="switchAdminTab('finance')" id="atab-finance">💰 التقارير المالية</button>
                 <button class="tab" onclick="switchAdminTab('reps')" id="atab-reps">👤 المندوبون</button>
                 <button class="tab" onclick="switchAdminTab('actions')" id="atab-actions">⚙️ الإجراءات</button>
+                <button class="tab" onclick="switchAdminTab('admins')" id="atab-admins" style="display:none;">🔑 المدراء</button>
             </div>
 
             <!-- COMPANIES TAB -->
@@ -269,6 +270,49 @@
                     </div>
                 </div>
             </div>
+
+            <!-- ADMINS TAB (SUPER ADMIN ONLY) -->
+            <div id="content-admins" class="admin-content" style="display:none;">
+                <div class="two-col">
+                    <div class="card">
+                        <div class="card-head">
+                            <h2>🔑 إضافة مدير جديد</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label class="form-label">الاسم الكامل</label>
+                                <input class="form-input" id="admin-full-name" placeholder="مثال: حسن أحمد محمد" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">اسم المستخدم (للدخول)</label>
+                                <input class="form-input" id="admin-username" placeholder="مثال: admin1" />
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">كلمة المرور</label>
+                                <input class="form-input" type="password" id="admin-password" placeholder="••••••••" />
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:center; gap:10px;">
+                                <input type="checkbox" id="admin-can-edit" style="width:20px; height:20px;" />
+                                <label for="admin-can-edit" style="cursor:pointer">صلاحية التعديل والحذف</label>
+                            </div>
+                            <button class="btn btn-primary btn-full" onclick="addAdmin()">إضافة المدير</button>
+                            <div id="admin-msg"></div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-head">
+                            <h2>🔑 قائمة المدراء</h2>
+                        </div>
+                        <div class="card-body" id="admins-list">
+                            <div class="empty-state">
+                                <div class="es-icon">🔑</div>
+                                <p>لا يوجد مدراء بعد.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
@@ -291,23 +335,55 @@
 <script src="js/admin.js"></script>
 <script>
     // Simple check on load
-    if (sessionStorage.getItem('isAdminLoggedIn') === 'true') {
-        document.getElementById('login-overlay').style.display = 'none';
-        document.getElementById('admin-main-content').style.display = 'block';
-    }
+    document.addEventListener('DOMContentLoaded', async () => {
+        const storedAdmin = sessionStorage.getItem('adminUser');
+        if (sessionStorage.getItem('isAdminLoggedIn') === 'true' && storedAdmin) {
+            state.currentAdmin = JSON.parse(storedAdmin);
+            await loadState(); // Ensure state is loaded with currentAdmin context
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('admin-main-content').style.display = 'block';
 
-    function checkAdminLogin() {
+            if (state.currentAdmin.isSuperAdmin) {
+                document.getElementById('atab-admins').style.display = '';
+            }
+            renderDashboard();
+        }
+    });
+
+    async function checkAdminLogin() {
         const u = document.getElementById('login-user').value;
         const p = document.getElementById('login-pass').value;
         const err = document.getElementById('login-err');
 
-        if (u === 'hasan' && p === 'password') {
+        try {
+            const res = await fetch(`${API_URL}/admins/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || 'Login failed');
+            }
+
+            const admin = await res.json();
             sessionStorage.setItem('isAdminLoggedIn', 'true');
+            sessionStorage.setItem('adminUser', JSON.stringify(admin));
+            state.currentAdmin = admin;
+
+            await loadState(); // Load full state after login
+
             document.getElementById('login-overlay').style.display = 'none';
             document.getElementById('admin-main-content').style.display = 'block';
-            renderDashboard(); // Re-render to ensure data is visible
-        } else {
-            err.textContent = '❌ خطأ في اسم المستخدم أو كلمة المرور';
+
+            if (state.currentAdmin.isSuperAdmin) {
+                document.getElementById('atab-admins').style.display = '';
+            }
+
+            renderDashboard();
+        } catch (e) {
+            err.textContent = `❌ ${e.message}`;
             setTimeout(() => { err.textContent = ''; }, 3000);
         }
     }

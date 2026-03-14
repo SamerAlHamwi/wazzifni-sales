@@ -14,7 +14,29 @@ function renderDashboard() {
   if (statAmount) statAmount.textContent = amt.toLocaleString();
   if (statRepsCount) statRepsCount.textContent = state.reps.length;
 
+  applyPermissions();
   renderCompanies();
+}
+
+function applyPermissions() {
+    const canEdit = state.currentAdmin && state.currentAdmin.canEdit;
+    const isSuper = state.currentAdmin && state.currentAdmin.isSuperAdmin;
+
+    // Hide clear reports button
+    const clearBtn = document.querySelector('#content-reports .btn-danger');
+    if (clearBtn) clearBtn.style.display = canEdit ? '' : 'none';
+
+    // Hide add/update rep cards
+    const repCards = document.querySelector('#content-reps .two-col');
+    if (repCards) repCards.style.display = canEdit ? '' : 'none';
+
+    // Hide add/delete action cards
+    const actionCards = document.querySelector('#content-actions .two-col');
+    if (actionCards) actionCards.style.display = canEdit ? '' : 'none';
+
+    // Admins tab only for super admin
+    const adminTab = document.getElementById('atab-admins');
+    if (adminTab) adminTab.style.display = isSuper ? '' : 'none';
 }
 
 /* UTILS */
@@ -257,6 +279,7 @@ function fallbackCopyTextToClipboard(text) {
 function renderRepsList() {
   const el = document.getElementById('reps-list');
   const selUpdate = document.getElementById('sel-update-rep-pass');
+  const canEdit = state.currentAdmin && state.currentAdmin.canEdit;
 
   if (selUpdate) {
     selUpdate.innerHTML = '<option value="">— اختر —</option>' + state.reps.map(r => `<option value="${r._id}">${r.fullName} (${r.username})</option>`).join('');
@@ -276,7 +299,7 @@ function renderRepsList() {
       </div>
       <div style="display:flex;gap:5px;align-items:center;">
         <button class="btn btn-sm" style="background:var(--primary);color:white;border:none;" onclick="copyRepDetails('${r._id}')">نسخ</button>
-        <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>
+        ${canEdit ? `<button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>` : ''}
       </div>
     </div>`).join('');
 }
@@ -369,6 +392,8 @@ async function quickDeleteRep(id, name) {
 function renderActionsList() {
   const wrap = document.getElementById('actions-list-table');
   const sel = document.getElementById('sel-del-action');
+  const canEdit = state.currentAdmin && state.currentAdmin.canEdit;
+
   if (sel) sel.innerHTML = '<option value="">— اختر —</option>' + state.actions.map(a => `<option>${a.name}</option>`).join('');
 
   if (!wrap) return;
@@ -381,7 +406,7 @@ function renderActionsList() {
     <td><strong>${a.name}</strong></td>
     <td><span class="badge badge-teal">⭐ ${a.points} نقطة</span></td>
     <td><span class="badge badge-gold">${(a.points * POINT_VALUE).toLocaleString()} د.ع</span></td>
-    <td><button class="btn btn-danger btn-sm" onclick="quickDeleteAction('${a._id || a.name}')">حذف</button></td>
+    <td>${canEdit ? `<button class="btn btn-danger btn-sm" onclick="quickDeleteAction('${a._id || a.name}')">حذف</button>` : ''}</td>
   </tr>`).join('');
   wrap.innerHTML = `<div style="overflow-x:auto;"><table class="wz-table">
     <thead><tr><th>الإجراء</th><th>النقاط</th><th>القيمة</th><th>إجراء</th></tr></thead>
@@ -442,6 +467,105 @@ async function performDeleteAction(idOrName, msgEl) {
         console.error('Error deleting action:', err);
         if (msgEl) showMsg(msgEl, 'حدث خطأ أثناء الحذف', 'error');
     }
+}
+
+/* ADMINS MANAGEMENT */
+function copyAdminDetails(id) {
+  const admin = state.admins.find(a => a._id === id);
+  if (!admin) return;
+  const text = `بيانات دخول لوحة الإدارة:
+الاسم: ${admin.fullName}
+اسم المستخدم: ${admin.username}
+كلمة المرور: ${admin.password}
+صلاحية التعديل: ${admin.canEdit ? 'نعم' : 'لا'}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('تم نسخ بيانات المدير بنجاح ✅');
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      fallbackCopyTextToClipboard(text);
+    });
+  } else {
+    fallbackCopyTextToClipboard(text);
+  }
+}
+
+function renderAdminsList() {
+  const el = document.getElementById('admins-list');
+  if (!el) return;
+  if (!state.admins.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">🔑</div><p>لا يوجد مدراء بعد.</p></div>';
+    return;
+  }
+  el.innerHTML = state.admins.map(a => `
+    <div class="list-item">
+      <div>
+        <div class="list-item-name">👤 ${a.fullName} ${a.isSuperAdmin ? '<span class="badge badge-gold">مدير عام</span>' : ''}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">اسم المستخدم: ${a.username} | صلاحية التعديل: ${a.canEdit ? '✅' : '❌'}</div>
+        <div style="font-size:11px;color:var(--primary);margin-top:2px;font-weight:600;">كلمة المرور: ${a.password}</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;">
+        <button class="btn btn-sm" style="background:var(--primary);color:white;border:none;" onclick="copyAdminDetails('${a._id}')">نسخ</button>
+        ${!a.isSuperAdmin ? `<button class="btn btn-danger btn-sm" onclick="quickDeleteAdmin('${a._id}', '${a.fullName}')">حذف</button>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function addAdmin() {
+  const fullName = document.getElementById('admin-full-name').value.trim();
+  const username = document.getElementById('admin-username').value.trim();
+  const password = document.getElementById('admin-password').value.trim();
+  const canEdit = document.getElementById('admin-can-edit').checked;
+  const msg = document.getElementById('admin-msg');
+
+  if (!fullName || !username || !password) {
+    showMsg(msg, 'يرجى ملء جميع الحقول.', 'error');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/admins`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName, username, password, canEdit })
+    });
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to add admin');
+    }
+    const newAdmin = await res.json();
+    state.admins.push(newAdmin);
+    state.admins.sort((a,b) => a.fullName.localeCompare(b.fullName, 'ar'));
+
+    document.getElementById('admin-full-name').value = '';
+    document.getElementById('admin-username').value = '';
+    document.getElementById('admin-password').value = '';
+    document.getElementById('admin-can-edit').checked = false;
+
+    showMsg(msg, 'تمت إضافة المدير بنجاح ✅', 'success');
+    renderAdminsList();
+  } catch (err) {
+    console.error('Error adding admin:', err);
+    showMsg(msg, err.message, 'error');
+  }
+}
+
+async function quickDeleteAdmin(id, name) {
+  if (!confirm(`هل أنت متأكد من حذف المدير "${name}"؟`)) return;
+  try {
+    const res = await fetch(`${API_URL}/admins/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete admin');
+    }
+
+    state.admins = state.admins.filter(a => a._id !== id);
+    renderAdminsList();
+  } catch (err) {
+    console.error('Error deleting admin:', err);
+    alert(err.message || 'حدث خطأ أثناء الحذف');
+  }
 }
 
 /* EXPORT TO EXCEL */

@@ -34,6 +34,7 @@ function switchAdminTab(tab) {
   if (tab === 'finance') renderFinance();
   if (tab === 'reps') renderRepsList();
   if (tab === 'actions') renderActionsList();
+  if (tab === 'admins') renderAdminsList();
 }
 
 /* UI UTILS */
@@ -47,15 +48,16 @@ function showMsg(el, text, type) {
 /* INITIALIZATION */
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('Initializing application...');
-  const success = await loadState();
-  if (success) {
-    if (document.getElementById('page-admin')) {
-      renderDashboard();
-    }
-    if (document.getElementById('page-rep')) {
-      renderRepForm();
-    }
-  } else {
-    alert('Failed to connect to the server. Please ensure the backend is running.');
+  // Note: For admin page, state is loaded within the login logic or on page load if already logged in.
+  // We only loadState here if we are not on the admin page or if it's the rep page.
+  if (!document.getElementById('page-admin')) {
+      const success = await loadState();
+      if (success) {
+        if (document.getElementById('page-rep')) {
+          renderRepForm();
+        }
+      } else {
+        alert('Failed to connect to the server. Please ensure the backend is running.');
+      }
   }
 });

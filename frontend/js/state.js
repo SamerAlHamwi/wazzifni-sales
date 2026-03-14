@@ -5,23 +5,36 @@ let state = {
   reps: [],
   actions: [],
   reports: [],
+  admins: [],
+  currentAdmin: null
 };
 
 async function loadState() {
   try {
-    const [repsRes, actionsRes, reportsRes] = await Promise.all([
+    const fetchPromises = [
       fetch(`${API_URL}/reps`),
       fetch(`${API_URL}/actions`),
       fetch(`${API_URL}/reports`)
-    ]);
+    ];
 
-    const repsData = await repsRes.json();
-    const actionsData = await actionsRes.json();
-    const reportsData = await reportsRes.json();
+    // If super admin, fetch admins list
+    const storedAdmin = sessionStorage.getItem('adminUser');
+    if (storedAdmin) {
+        state.currentAdmin = JSON.parse(storedAdmin);
+        if (state.currentAdmin.isSuperAdmin) {
+            fetchPromises.push(fetch(`${API_URL}/admins`));
+        }
+    }
 
-    state.reps = repsData;
-    state.actions = actionsData;
-    state.reports = reportsData;
+    const responses = await Promise.all(fetchPromises);
+
+    state.reps = await responses[0].json();
+    state.actions = await responses[1].json();
+    state.reports = await responses[2].json();
+
+    if (state.currentAdmin && state.currentAdmin.isSuperAdmin && responses[3]) {
+        state.admins = await responses[3].json();
+    }
 
     return true;
   } catch (err) {
