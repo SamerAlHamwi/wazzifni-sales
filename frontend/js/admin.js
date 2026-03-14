@@ -215,6 +215,45 @@ function hideFinanceDetail() {
 }
 
 /* REPS MANAGEMENT */
+function copyRepDetails(id) {
+  const rep = state.reps.find(r => r._id === id);
+  if (!rep) return;
+  const text = `مرحباً بك في مندوبي وظفني
+اسم المستخدم:
+${rep.username}
+كلمة المرور:
+${rep.password}`;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      alert('تم نسخ البيانات بنجاح ✅');
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      fallbackCopyTextToClipboard(text);
+    });
+  } else {
+    fallbackCopyTextToClipboard(text);
+  }
+}
+
+function fallbackCopyTextToClipboard(text) {
+  const textArea = document.createElement("textarea");
+  textArea.value = text;
+  textArea.style.position = "fixed";
+  textArea.style.left = "-999999px";
+  textArea.style.top = "-999999px";
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) alert('تم نسخ البيانات بنجاح ✅');
+  } catch (err) {
+    console.error('Fallback copy failed', err);
+  }
+  document.body.removeChild(textArea);
+}
+
 function renderRepsList() {
   const el = document.getElementById('reps-list');
   const selUpdate = document.getElementById('sel-update-rep-pass');
@@ -235,7 +274,10 @@ function renderRepsList() {
         <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">اسم المستخدم: ${r.username}</div>
         <div style="font-size:11px;color:var(--primary);margin-top:2px;font-weight:600;">كلمة المرور: ${r.password}</div>
       </div>
-      <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>
+      <div style="display:flex;gap:5px;align-items:center;">
+        <button class="btn btn-sm" style="background:var(--primary);color:white;border:none;" onclick="copyRepDetails('${r._id}')">نسخ</button>
+        <button class="btn btn-danger btn-sm" onclick="quickDeleteRep('${r._id}', '${r.fullName}')">حذف</button>
+      </div>
     </div>`).join('');
 }
 
