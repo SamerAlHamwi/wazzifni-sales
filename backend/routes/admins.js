@@ -12,12 +12,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-
-
-
-
-
-
 // Login for admins
 router.post('/login', async (req, res) => {
   try {
