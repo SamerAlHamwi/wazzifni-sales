@@ -321,6 +321,61 @@
     </div>
 </div>
 
+<!-- EDIT MODAL -->
+<div id="edit-report-modal" class="login-overlay" style="display:none; z-index: 1000;">
+    <div class="login-box" style="max-width: 600px; width: 95%; max-height: 90vh; overflow-y: auto;">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h2 style="margin:0;">✏️ تعديل بيانات التقرير</h2>
+            <button class="btn btn-sm" style="background:var(--surface2);color:var(--text); border:none; border-radius:50%; width:30px; height:30px;" onclick="closeEditModal()">✕</button>
+        </div>
+        <input type="hidden" id="edit-report-id">
+        <div class="two-col">
+            <div class="form-group">
+                <label class="form-label">اسم الشركة</label>
+                <input type="text" id="edit-company-name" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="text" id="edit-company-phone" class="form-input">
+            </div>
+        </div>
+        <div class="two-col">
+            <div class="form-group">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input type="text" id="edit-company-email" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">العنوان</label>
+                <input type="text" id="edit-company-address" class="form-input">
+            </div>
+        </div>
+        <div class="form-group">
+            <label class="form-label">الموقع (GPS)</label>
+            <input type="text" id="edit-company-gps" class="form-input">
+        </div>
+        <div class="form-group">
+            <label class="form-label">ملاحظات</label>
+            <textarea id="edit-notes" class="form-input" style="height: 60px;"></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">الإجراءات المتخذة</label>
+            <div id="edit-actions-container" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; padding:10px; background:var(--surface2); border-radius:8px; min-height:40px;">
+                <!-- Actions badges will be here -->
+            </div>
+            <div style="display:flex; gap:10px;">
+                <select id="edit-add-action-select" class="form-select" style="flex:1;">
+                    <option value="">— إضافة إجراء —</option>
+                </select>
+                <button class="btn btn-primary" onclick="addActionToEdit()">إضافة</button>
+            </div>
+        </div>
+        <div style="margin-top:24px; display:flex; gap:12px;">
+            <button class="btn btn-accent btn-full" onclick="saveReportEdit()">حفظ التغييرات</button>
+            <button class="btn btn-full" style="background:var(--surface2); color:var(--text);" onclick="closeEditModal()">إلغاء</button>
+        </div>
+    </div>
+</div>
+
 <!-- SUCCESS OVERLAY -->
 <div class="success-overlay" id="success-overlay">
     <div class="success-box">

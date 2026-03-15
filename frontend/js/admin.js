@@ -53,6 +53,7 @@ function formatReportDate(dateVal) {
 function renderCompanies() {
   const grid = document.getElementById('companies-grid');
   const countEl = document.getElementById('companies-count');
+  const canEdit = state.currentAdmin && state.currentAdmin.canEdit;
   if (!grid) return;
 
   if (!state.reports.length) {
@@ -101,6 +102,7 @@ function renderCompanies() {
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:5px;font-weight:600;">الإجراءات:</div>
           <div>${actsHtml}</div>
         </div>
+        ${canEdit ? `<button class="btn btn-sm" style="margin-top:10px; width:100%; background:var(--surface2); color:var(--primary); font-weight:600;" onclick="openEditReport('${r._id}')">✏️ تعديل البيانات</button>` : ''}
       </div>
       <div class="company-card-footer">
         <div class="company-footer-pts">النقاط: <strong>${pts}</strong> &nbsp;|&nbsp; المبلغ: <strong>${(pts * POINT_VALUE).toLocaleString()} د.ع</strong></div>
@@ -113,6 +115,7 @@ function renderCompanies() {
 /* REPORTS TABLE */
 function renderReportsTable() {
   const wrap = document.getElementById('reports-table-wrap');
+  const canEdit = state.currentAdmin && state.currentAdmin.canEdit;
   if (!wrap) return;
   if (!state.reports.length) {
     wrap.innerHTML = `<div class="empty-state"><div class="es-icon">📭</div><p>لا توجد تقارير حتى الآن.</p></div>`;
@@ -135,10 +138,11 @@ function renderReportsTable() {
       <td><span class="badge badge-gold">${(pts * POINT_VALUE).toLocaleString()} د.ع</span></td>
       <td style="font-size:12px;max-width:160px;">${acts}</td>
       <td style="font-size:11px;color:var(--text-muted);">${dateStr}</td>
+      <td>${canEdit ? `<button class="btn btn-sm" style="background:var(--surface2); color:var(--primary);" onclick="openEditReport('${r._id}')">✏️</button>` : ''}</td>
     </tr>`;
   }).join('');
   wrap.innerHTML = `<div style="overflow-x:auto;"><table class="wz-table">
-    <thead><tr><th>المندوب</th><th>الشركة</th><th>النقاط</th><th>المبلغ</th><th>الإجراءات</th><th>التاريخ</th></tr></thead>
+    <thead><tr><th>المندوب</th><th>الشركة</th><th>النقاط</th><th>المبلغ</th><th>الإجراءات</th><th>التاريخ</th><th>تعديل</th></tr></thead>
     <tbody>${rows}</tbody></table></div>`;
 }
 
@@ -660,4 +664,105 @@ function exportActionsToExcel() {
     'القيمة (د.ع)': a.points * POINT_VALUE
   }));
   downloadExcel(data, 'قائمة_الإجراءات');
+}
+
+/* EDIT REPORT MODAL */
+let editReportActions = [];
+
+function openEditReport(reportId) {
+    const report = state.reports.find(r => r._id === reportId);
+    if (!report) return;
+
+    document.getElementById('edit-report-id').value = report._id;
+    document.getElementById('edit-company-name').value = report.company_name || '';
+    document.getElementById('edit-company-phone').value = report.company_phone || '';
+    document.getElementById('edit-company-email').value = report.company_email || '';
+    document.getElementById('edit-company-address').value = report.company_address || '';
+    document.getElementById('edit-company-gps').value = report.company_gps || '';
+    document.getElementById('edit-notes').value = report.notes || '';
+
+    editReportActions = Array.isArray(report.actions) ? [...report.actions] : [];
+    renderEditActions();
+
+    const sel = document.getElementById('edit-add-action-select');
+    if (sel) {
+        sel.innerHTML = '<option value="">— إضافة إجراء —</option>' +
+            state.actions.map(a => `<option value="${a.name}">${a.name} (${a.points} ن)</option>`).join('');
+    }
+
+    document.getElementById('edit-report-modal').style.display = 'flex';
+}
+
+function closeEditModal() {
+    document.getElementById('edit-report-modal').style.display = 'none';
+}
+
+function renderEditActions() {
+    const container = document.getElementById('edit-actions-container');
+    if (!container) return;
+    container.innerHTML = editReportActions.map(a => `
+        <span class="badge badge-blue" style="display:flex; align-items:center; gap:5px; padding: 5px 10px;">
+            ${a}
+            <span style="cursor:pointer; font-weight:bold; font-size:16px; margin-right:5px;" onclick="removeActionFromEdit('${a}')">×</span>
+        </span>
+    `).join('');
+}
+
+function addActionToEdit() {
+    const sel = document.getElementById('edit-add-action-select');
+    const actionName = sel.value;
+    if (!actionName) return;
+    if (!editReportActions.includes(actionName)) {
+        editReportActions.push(actionName);
+        renderEditActions();
+    }
+    sel.value = '';
+}
+
+function removeActionFromEdit(name) {
+    editReportActions = editReportActions.filter(a => a !== name);
+    renderEditActions();
+}
+
+async function saveReportEdit() {
+    const id = document.getElementById('edit-report-id').value;
+    const updateData = {
+        company_name: document.getElementById('edit-company-name').value.trim(),
+        company_phone: document.getElementById('edit-company-phone').value.trim(),
+        company_email: document.getElementById('edit-company-email').value.trim(),
+        company_address: document.getElementById('edit-company-address').value.trim(),
+        company_gps: document.getElementById('edit-company-gps').value.trim(),
+        notes: document.getElementById('edit-notes').value.trim(),
+        actions: editReportActions
+    };
+
+    let totalPoints = 0;
+    updateData.actions.forEach(actName => {
+        const found = state.actions.find(a => a.name === actName);
+        if (found) totalPoints += found.points;
+    });
+    updateData.total_points = totalPoints;
+
+    try {
+        const res = await fetch(`${API_URL}/reports/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+
+        if (!res.ok) throw new Error('Failed to update report');
+
+        const updatedReport = await res.json();
+        const idx = state.reports.findIndex(r => r._id === id);
+        if (idx !== -1) state.reports[idx] = updatedReport;
+
+        alert('تم التعديل بنجاح ✅');
+        closeEditModal();
+        renderDashboard();
+        renderReportsTable();
+        renderFinance();
+    } catch (err) {
+        console.error('Error saving report edit:', err);
+        alert('حدث خطأ أثناء حفظ التعديلات');
+    }
 }
